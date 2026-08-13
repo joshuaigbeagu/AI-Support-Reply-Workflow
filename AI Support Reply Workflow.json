@@ -1,0 +1,812 @@
+{
+  "name": "AI Support Reply Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "6d577836-3e82-4c2e-8795-49cb8cfd48b6",
+      "name": "Embeddings OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -448,
+        384
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1"
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 1500
+        }
+      },
+      "id": "15493b8b-f9ae-4c31-af0f-a2df6d774e9e",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -752,
+        272
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.FromAddress }}"
+      },
+      "id": "cc7a04c9-6d36-438d-b779-7e7d9075eb38",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -656,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "you must run this tool to answer the user's question",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "taskflow",
+          "mode": "list",
+          "cachedResultName": "taskflow"
+        },
+        "topK": 5,
+        "options": {}
+      },
+      "id": "f8d1869c-fe62-4f60-9914-47577a69b3d2",
+      "name": "Pinecone Vector Store1",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        -560,
+        272
+      ],
+      "credentials": {
+        "pineconeApi": {
+          "id": "bMeEXZ3zt7VUMGa2",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"status\": {\n      \"type\": \"string\",\n      \"enum\": [\"Draft Ready\", \"Escalate\"],\n      \"description\": \"Draft Ready if the answer is clearly supported by retrieved context, Escalate otherwise.\"\n    },\n    \"confidence\": {\n      \"type\": \"string\",\n      \"enum\": [\"High\", \"Low\"]\n    },\n    \"complaint_category\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"Billing\",\n        \"Account Access\",\n        \"Bug\",\n        \"Feature Question\",\n        \"Integration\",\n        \"Performance\",\n        \"Refund\",\n        \"Cancellation\",\n        \"Feedback\",\n        \"Technical\",\n        \"Other\"\n      ]\n    },\n    \"priority\": {\n      \"type\": \"string\",\n      \"enum\": [\"Low\", \"Medium\", \"High\", \"Urgent\"]\n    },\n    \"draft\": {\n      \"type\": [\"string\", \"null\"],\n      \"description\": \"Customer-facing reply text. Required if status is Draft Ready, otherwise null.\"\n    },\n    \"escalation_reason\": {\n      \"type\": [\"string\", \"null\"],\n      \"description\": \"Brief internal note explaining why this was escalated. Required if status is Escalate, otherwise null.\"\n    }\n  },\n  \"required\": [\n    \"status\",\n    \"confidence\",\n    \"complaint_category\",\n    \"priority\",\n    \"draft\",\n    \"escalation_reason\"\n  ],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -320,
+        320
+      ],
+      "id": "9e910e1a-3624-46d0-927a-d7a76bf4374e",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "75ae55dc-cd48-4d53-a794-fae964a24933",
+              "name": "FromAddress",
+              "value": "={{ $json.from.value[0].address }}",
+              "type": "string"
+            },
+            {
+              "id": "c18a33ee-d7ae-4eeb-bbe7-3b4d6015c399",
+              "name": "FromName",
+              "value": "={{ $json.from.value[0].name }}",
+              "type": "string"
+            },
+            {
+              "id": "27717a88-249e-4845-a845-83494adffc88",
+              "name": "Subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "30cb3c60-b610-4f47-9619-0e6ccf9390c8",
+              "name": "Body",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -896,
+        96
+      ],
+      "id": "4308d390-f457-4eae-97f2-6ad2d83fd3fb",
+      "name": "Extract Data"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "maxResults": 1,
+        "filters": {
+          "labelIds": [
+            "INBOX"
+          ],
+          "q": "category:primary",
+          "readStatus": "unread"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -1104,
+        96
+      ],
+      "id": "681c91df-27ab-4ddf-958f-5f68e03201a9",
+      "name": "Incoming Email",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "CdshX7R9SnAppcjY",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.status }}",
+                    "rightValue": "Draft Ready",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "4876c900-1a62-4b6a-a7ca-d906aed8b3f0"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Draft Ready"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "5ba58d21-37d3-4881-87ee-19140c616c86",
+                    "leftValue": "={{ $json.output.status }}",
+                    "rightValue": "Escalate",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Escalate"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -304,
+        96
+      ],
+      "id": "f4969fc6-ca6b-4693-8053-40390bd9e516",
+      "name": "Confidence Branch"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0AA1H5F4TT",
+          "mode": "list",
+          "cachedResultName": "customer-service"
+        },
+        "text": "=🚨 Escalation needed\n*From:* {{ $('Extract Data').item.json.FromName }} <{{ $('Extract Data').item.json.FromAddress }}>\n*Subject:* {{ $('Extract Data').item.json.Subject }}\n*Category:* {{ $json.output.complaint_category }}\n*Priority:* {{ $json.output.priority }}\n*Reason:* {{ $json.output.escalation_reason }}\n\n*Original message:*\n{{ $('Extract Data').item.json.Body }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        -32,
+        208
+      ],
+      "id": "81af3e07-9c7e-4e73-a792-a7deab51ba03",
+      "name": "Escalate to Human",
+      "webhookId": "f460c4b9-d3c0-49ed-84a2-6972748c33c5",
+      "retryOnFail": true,
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "hcGEbNOEciUITnEl",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "=Re: {{ $('Extract Data').item.json.Subject }}",
+        "message": "={{ $json.output.draft }}",
+        "options": {
+          "threadId": "={{ $('Incoming Email').item.json.threadId }}",
+          "sendTo": "={{ $('Extract Data').item.json.FromAddress }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -32,
+        0
+      ],
+      "id": "32d7c829-4eba-4c5a-a1db-d536c7e7e0fc",
+      "name": "Create Draft Reply",
+      "webhookId": "70fe4237-5190-4296-81d4-1a77ddf1d97d",
+      "retryOnFail": true,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "CdshX7R9SnAppcjY",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Incoming Email').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        96
+      ],
+      "id": "2b153eb4-161f-4859-b1ef-e18f1eff69c0",
+      "name": "Mark as Read",
+      "webhookId": "acb5c205-7375-4e07-a12c-558f80e90556",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "CdshX7R9SnAppcjY",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=From_address: {{ $json.FromAddress }}\nFrom_name: {{ $json.FromName }}\nEmail_subject: {{ $json.Subject }}\nEmail_body: {{ $json.Body }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "# TaskFlow Support Agent — System Prompt\n\nThis is standing instruction for the AI support agent running as an AI Agent node (OpenAI model, simple memory, Pinecone connected as a Tool). It is injected as the system message on every ticket. It is not part of the knowledge base and must never be embedded or chunked into the vector store.\n\n---\n\n## Role\n\nYou are a support agent for TaskFlow, a project management SaaS product.\n\nYour job is to read one inbound customer support email and produce exactly one of the following:\n- a customer-facing draft reply, or\n- an escalation package for a human agent.\n\nYou do not send messages. You only draft or escalate.\n\n---\n\n## Tool Use Rule — Mandatory\n\nYou have a tool called **Pinecone Knowledge Base Search**. It is your only source of truth for TaskFlow product information.\n\nFor every inbound message:\n1. Call the Pinecone Knowledge Base Search tool.\n2. Use only retrieved TaskFlow documentation to answer.\n3. Do not answer from memory, general SaaS knowledge, or assumptions.\n4. If the first search is clearly irrelevant or incomplete, reformulate once and try again.\n5. Do not call the tool more than 3 times for one ticket.\n6. Never invent product behavior, limits, pricing, policies, steps, or availability.\n\nIf the customer message contains multiple questions:\n- evaluate all of them against the knowledge base,\n- if any one question fails the confidence bar, escalate the entire ticket,\n- do not partially answer,\n- do not mix draft and escalation output.\n\n---\n\n## Drafting Rule\n\nAfter retrieving context, decide whether the question is clearly supported.\n\n### If clearly supported:\n- set `status` to `Draft Ready`\n- set `confidence` to `High`\n- write a short reply\n- acknowledge the issue briefly\n- give the direct answer or steps\n- include any relevant limit or condition\n- keep the reply concise and specific\n\n### If not clearly supported:\n- set `status` to `Escalate`\n- set `confidence` to `Low`\n- explain briefly why escalation is needed\n- do not write a customer-facing draft\n\n---\n\n## Escalation Rules\n\nEscalate if any of the following apply:\n- the question is not clearly covered by retrieved context\n- the answer would require guessing\n- the message is ambiguous\n- the customer is angry, frustrated, or threatening to cancel\n- the issue involves billing disputes, chargebacks, or refunds outside documented policy\n- the issue involves account security, compromise, or access recovery beyond standard reset steps\n- the issue suggests data loss, sync corruption, or platform outage\n- the question asks about roadmap, unreleased features, or future release dates\n- the issue requires internal access or manual intervention the agent cannot perform\n\n---\n\n## Complaint Category\n\nClassify every ticket into exactly one category using the best fit.\n\nAllowed values:\n- `Billing`\n- `Account Access`\n- `Bug`\n- `Feature Question`\n- `Integration`\n- `Performance`\n- `Refund`\n- `Cancellation`\n- 'Feedback'\n- 'Technical'\n- `Other`\n\nUse `Other` only if nothing else clearly applies.\n\nIf the ticket is escalated, still assign the best primary category.\n\n---\n\n## Priority\n\nSet priority using these rules, in order. Stop at the first match.\n\n1. `Urgent` — account security/compromise, data loss, sync corruption, or platform outage\n2. `High` — billing disputes/refunds outside policy, or the customer is angry, frustrated, or threatening to cancel\n3. `Medium` — any other escalation not covered above\n4. `Low` — draft-ready tickets\n\nAllowed values:\n- `Low`\n- `Medium`\n- `High`\n- `Urgent`\n\n---\n\n## Output Requirements\n\nReturn valid structured JSON only.\n\nFields:\n- `status`: `Draft Ready` or `Escalate`\n- `confidence`: `High` or `Low`\n- `complaint_category`: one allowed category value\n- `priority`: one allowed priority value\n- `draft`: string or null\n- `escalation_reason`: string or null\n\nRules:\n- If `status` is `Draft Ready`, `draft` must contain the customer reply and `escalation_reason` must be null.\n- If `status` is `Escalate`, `escalation_reason` must contain the internal reason and `draft` must be null.\n- Do not add any other keys.\n- Do not wrap the JSON in markdown.\n- Do not add commentary outside the JSON.\n\n---\n\n## Style Requirements\n\n- Be short.\n- Be specific.\n- Do not speculate.\n- Do not mention uncertainty in the customer-facing draft unless escalating.\n- Do not include internal tags in the customer-facing draft."
+        }
+      },
+      "id": "07417189-b5df-427d-b150-5ab473612351",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -656,
+        96
+      ],
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "content": "Watches Gmail for new inbox messages and usable data like sender details and email contents are extracted for clear mapping.",
+        "width": 272
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1088,
+        -48
+      ],
+      "typeVersion": 1,
+      "id": "276f640a-f805-49e8-95da-c2851c85b24b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Reads the email, searches the knowledge base, and decides whether to draft a reply or escalate based on confidence rating.",
+        "width": 224
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -656,
+        -48
+      ],
+      "typeVersion": 1,
+      "id": "f3aae6a3-13cc-4d7a-84fb-218c6d35cf85",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "Logs every complaint in Airtable with useful details details. And then marks the Gmail message as read only after the record has been created.",
+        "width": 304
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        272,
+        -48
+      ],
+      "typeVersion": 1,
+      "id": "36096209-eedd-43a3-9f6c-aebd98861c08",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appIMg2d8iiZO2saC",
+          "mode": "list",
+          "cachedResultName": "TaskFlow Support",
+          "cachedResultUrl": "https://airtable.com/appIMg2d8iiZO2saC"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblj0pCtlf5bCZrvR",
+          "mode": "list",
+          "cachedResultName": "Support Complaints",
+          "cachedResultUrl": "https://airtable.com/appIMg2d8iiZO2saC/tblj0pCtlf5bCZrvR"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Sender Email": "={{ $('Extract Data').item.json.FromAddress }}",
+            "Sender Name": "={{ $('Extract Data').item.json.FromName }}",
+            "Subject": "={{ $('Extract Data').item.json.Subject }}",
+            "Email Body": "={{ $('Extract Data').item.json.Body }}",
+            "AI Status": "={{ $('AI Agent').item.json.output.status }}",
+            "Draft Reply": "={{ $('AI Agent').item.json.output.draft }}",
+            "Escalation Reason": "={{ $('AI Agent').item.json.output.escalation_reason }}",
+            "Priority": "={{ $('AI Agent').item.json.output.priority }}",
+            "Thread ID": "={{ $('Incoming Email').item.json.threadId }}",
+            "Complaint Category": "={{ $('AI Agent').item.json.output.complaint_category }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Sender Email",
+              "displayName": "Sender Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Received At",
+              "displayName": "Received At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Sender Name",
+              "displayName": "Sender Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email Body",
+              "displayName": "Email Body",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Thread ID",
+              "displayName": "Thread ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Complaint Category",
+              "displayName": "Complaint Category",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Billing",
+                  "value": "Billing"
+                },
+                {
+                  "name": "Account Access",
+                  "value": "Account Access"
+                },
+                {
+                  "name": "Bug",
+                  "value": "Bug"
+                },
+                {
+                  "name": "Feature Question",
+                  "value": "Feature Question"
+                },
+                {
+                  "name": "Integration",
+                  "value": "Integration"
+                },
+                {
+                  "name": "Performance",
+                  "value": "Performance"
+                },
+                {
+                  "name": "Refund",
+                  "value": "Refund"
+                },
+                {
+                  "name": "Cancellation",
+                  "value": "Cancellation"
+                },
+                {
+                  "name": "Other",
+                  "value": "Other"
+                },
+                {
+                  "name": "Technical",
+                  "value": "Technical"
+                },
+                {
+                  "name": "Shipping",
+                  "value": "Shipping"
+                },
+                {
+                  "name": "Feedback",
+                  "value": "Feedback"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "AI Status",
+              "displayName": "AI Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Draft Ready",
+                  "value": "Draft Ready"
+                },
+                {
+                  "name": "Escalate",
+                  "value": "Escalate"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Draft Reply",
+              "displayName": "Draft Reply",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Escalation Reason",
+              "displayName": "Escalation Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Low",
+                  "value": "Low"
+                },
+                {
+                  "name": "Medium",
+                  "value": "Medium"
+                },
+                {
+                  "name": "High",
+                  "value": "High"
+                },
+                {
+                  "name": "Urgent",
+                  "value": "Urgent"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        272,
+        96
+      ],
+      "id": "13994149-7400-4b3d-8455-34141cbee929",
+      "name": "Create Ticket",
+      "retryOnFail": true,
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "iIAOe66S5YUuNgKG",
+          "name": "Airtable account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Data": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Incoming Email": {
+      "main": [
+        [
+          {
+            "node": "Extract Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confidence Branch": {
+      "main": [
+        [
+          {
+            "node": "Create Draft Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalate to Human",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate to Human": {
+      "main": [
+        [
+          {
+            "node": "Create Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Draft Reply": {
+      "main": [
+        [
+          {
+            "node": "Create Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Confidence Branch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Ticket": {
+      "main": [
+        [
+          {
+            "node": "Mark as Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark as Read": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "N8U4uXMUNbYbejxE",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "dc4fd2b9-62d8-4ccb-af37-6f5e19070ad4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "70b9077d2b2333452a98535b97fd8d786e84d9e3139c27987cf4ba0fa2d4565a"
+  },
+  "nodeGroups": [],
+  "id": "NienGqNeXjaLorio",
+  "tags": []
+}
