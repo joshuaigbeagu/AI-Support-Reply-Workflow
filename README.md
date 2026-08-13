@@ -1,6 +1,6 @@
 # AI Support Reply Workflow
 
-An AI-powered customer support workflow that analyzes inbound customer support emails, retrieves relevant information from a knowledge base, drafts replies or escalates to a human based on confidence, and logs every ticket for tracking.
+An AI-powered customer support workflow that analyzes inbound customer emails, retrieves relevant information from a knowledge base, drafts replies or escalates to a human based on confidence, and logs every ticket for tracking.
 
 
 ## Overview
