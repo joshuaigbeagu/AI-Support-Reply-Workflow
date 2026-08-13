@@ -58,6 +58,7 @@ Every request is also logged so support activity can be tracked and reviewed.
 - **Low-Confidence Escalation** — Sends low-confidence requests to Slack for human intervention.
 - **Centralized Ticket Logging** — Records support requests and their outcomes in Airtable.
 - **Reliable State Tracking** — Marks messages as read only after successful ticket logging, so failures leave the email unread for retry instead of silently dropping the request.
+- **Execution Error Alerts** — Uses a dedicated n8n error workflow to detect failed executions and send alerts for investigation.
 
 
 ## Design Decisions
@@ -110,6 +111,12 @@ Duplicate-write protection against a rare trigger re-fire was deliberately omitt
 
 The workflow marks an email as read only after successful ticket logging. If a downstream step fails, the message remains unread and can be retried rather than being silently removed from the processing queue.
 
+### Execution Error Handling
+
+A dedicated n8n error workflow monitors failed executions and sends alerts when an execution error occurs.
+
+This provides operational visibility into workflow failures without requiring manual inspection of n8n execution history.
+
 
 ## Setup & Configuration
 
@@ -132,7 +139,7 @@ Before running the workflow, configure the following integrations in n8n:
 | OpenAI | Generate AI responses and create embeddings for knowledge retrieval | OpenAI Chat Model, OpenAI Embeddings |
 | Pinecone | Retrieve relevant information from the support knowledge base | Pinecone Vector Store |
 | Slack | Notify human support staff when a request requires escalation | Escalate to Human |
-| Airtable | Store and track processed support requests | Create Record |
+| Airtable | Store and track processed support requests | Create Ticket |
 
 ### Knowledge Base
 
@@ -164,3 +171,59 @@ The `Create Record` node expects a table containing the following fields:
 All API credentials and authentication details should be configured through n8n's credential system.
 
 **Do not store API keys, access tokens, passwords, or other secrets directly in the workflow JSON or repository.**
+
+
+## Testing & Validation
+
+The workflow was tested against support requests designed to validate both the normal response path and the human-escalation path.
+
+### Test Scenarios
+
+| Scenario | Expected Outcome |
+|---|---|
+| Request clearly answered by the knowledge base | High-confidence classification → Gmail draft created → Ticket logged |
+| Request partially supported by the knowledge base | Low-confidence classification → Slack escalation → Ticket logged |
+| Request not covered by the knowledge base | Low-confidence classification → Slack escalation → Ticket logged |
+| Successful ticket logging | Email marked as read |
+| Ticket logging failure | Email remains unread for retry |
+| High-confidence request | No automatic email is sent; response remains a Gmail draft |
+| Low-confidence request | No customer reply is generated; request is escalated to a human |
+
+### Validation Criteria
+
+The workflow is considered successful when:
+
+- AI responses are grounded in retrieved knowledge rather than unsupported assumptions.
+- Structured AI output is accepted only when it matches the expected schema.
+- High-confidence requests produce a Gmail draft without automatically sending it.
+- Low-confidence requests are escalated through Slack.
+- Every processed request is recorded in Airtable.
+- Emails are marked as read only after successful downstream processing.
+- Failed executions do not silently remove messages from the processing queue.
+
+
+## Project Structure
+
+```
+AI-Support-Reply-Workflow/
+├── AI-Support-Reply-Workflow.json
+└── README.md
+```
+
+## Limitations
+
+- **Human review is still required** — High-confidence responses are drafted but not automatically sent to customers.
+- **Knowledge base dependent** — Response quality depends on the accuracy, completeness, and relevance of the information stored in Pinecone.
+- **Email-based intake** — The current workflow is designed around Gmail and does not directly process requests from other support channels.
+- **Single knowledge source** — The AI currently relies on the configured knowledge base rather than dynamically consulting multiple external sources.
+- **Duplicate processing** — The workflow does not currently implement explicit idempotency protection against rare duplicate trigger events.
+- **Structured classification is not infallible** — Schema validation ensures the AI output follows the expected structure, but it does not guarantee that the underlying classification is correct.
+
+
+## Future Improvements
+
+- Add idempotency protection to prevent duplicate ticket creation from repeated trigger events.
+- Introduce confidence thresholds based on retrieval quality and response evaluation rather than relying on a single classification status.
+- Add automated follow-up handling for unresolved support requests.
+- Introduce conversation-level memory for multi-message support threads.
+- Add an inbound request classifier to identify whether an email is a genuine support request before sending it through the full AI processing pipeline.
