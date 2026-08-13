@@ -12,6 +12,8 @@ This workflow automates the repetitive parts of that process while keeping human
 
 ## Workflow Architecture
 
+![n8n workflow canvas](workflow-canvas.png)
+
 ```
                                         Inbound Customer Email (unread, inbox)
                                                          ↓
@@ -51,6 +53,36 @@ This workflow automates the repetitive parts of that process while keeping human
 - **Centralized Ticket Logging** — Records support requests and their outcomes in Airtable.
 - **Reliable State Tracking** — Marks messages as read only after successful ticket logging, so failures leave the email unread for retry instead of silently dropping the request.
 - **Execution Error Alerts** — Uses a dedicated n8n error workflow to detect failed executions and send alerts for investigation.
+
+
+## Example
+
+### Incoming Support Request
+
+**Subject:** Password reset email not arriving
+
+**Message:**
+
+> I am trying to log in to my account, but I forgot my password. I clicked Forgot password a few times, but I am not receiving the reset email. I checked my inbox and spam folder, and nothing has come through yet.
+
+### Workflow Processing
+
+1. Gmail detects the unread support email.
+2. The workflow extracts the sender, subject, body, and thread ID.
+3. The AI agent searches the knowledge base for relevant password-reset information.
+4. The retrieved information is evaluated to determine whether the request can be reliably answered.
+5. The request is routed based on the structured `status` output.
+6. If high confidence, a reply draft is created in Gmail for human review.
+7. If low confidence, the request is escalated through Slack.
+8. The support request is logged in Airtable.
+9. The email is marked as read after successful ticket logging.
+
+
+### Outcome
+
+The customer receives a professionally drafted response for human review when the knowledge base supports a reliable answer. If the available knowledge is insufficient, the request is escalated instead of generating an unsupported response.
+
+In both cases, the interaction is recorded in Airtable for tracking, while successful processing results in the Gmail message being marked as read.
 
 
 ## Design Decisions
