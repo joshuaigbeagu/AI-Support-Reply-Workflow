@@ -16,3 +16,24 @@ The system separates support requests into two paths:
 - **Low-confidence requests:** Escalate the request to a human support agent for further handling.
 
 Every request is also logged so support activity can be tracked and reviewed.
+
+
+## Workflow Architecture
+
+```text
+                                        Inbound Customer Email (unread, inbox)
+                                                         ↓
+                                    Extract Data (sender, subject, body, thread ID)
+                                                         ↓
+                   AI Agent (searches knowledge base, evaluates confidence, generates structured output)
+                                                         ↓
+                                   Confidence Branch (routes on structured output: status)
+                                         ↓                                     ↓
+                                    High Confidence                     Low Confidence
+                                         ↓                                     ↓
+                                   Draft Email Reply                   Escalate to Human
+                                         ↓                                     ↓
+                                         └──────────→ Ticket Logged ←──────────┘
+                                                          ↓
+                                                 Email Marked as Read
+
