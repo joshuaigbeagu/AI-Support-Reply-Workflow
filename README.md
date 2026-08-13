@@ -231,7 +231,8 @@ The workflow is considered successful when:
 ```
 AI-Support-Reply-Workflow/
 ├── AI-Support-Reply-Workflow.json
-└── README.md
+├── README.md
+└── workflow-canvas.png
 ```
 
 ## Limitations
