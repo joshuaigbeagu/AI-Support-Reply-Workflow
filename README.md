@@ -86,6 +86,10 @@ Requests that cannot be reliably answered from the available knowledge are escal
 
 This provides a clear fallback path for cases requiring human judgment.
 
+### Reliable Ticket Logging
+
+Both high-confidence and low-confidence paths converge on ticket logging in Airtable. This ensures that every processed support request is recorded regardless of its outcome.
+
 ### Ticket Storage: Airtable Over a Full CRM
 
 Ticket logging initially used HubSpot's contact and ticket objects. It was moved to a single Airtable table because the requirement was to log and track support requests, not manage a sales pipeline.
@@ -102,10 +106,61 @@ This avoids search-then-branch-or-create logic and keeps each support interactio
 
 Duplicate-write protection against a rare trigger re-fire was deliberately omitted because adding a search step before every write would introduce additional complexity that was not justified at the current scale.
 
-### Reliable Ticket Logging
-
-Both high-confidence and low-confidence paths converge on ticket logging in Airtable. This ensures that every processed support request is recorded regardless of its outcome.
-
 ### Failure-Safe Email Handling
 
 The workflow marks an email as read only after successful ticket logging. If a downstream step fails, the message remains unread and can be retried rather than being silently removed from the processing queue.
+
+
+## Setup & Configuration
+
+### Prerequisites
+
+- n8n instance
+- Gmail account connected to n8n
+- OpenAI API access
+- Pinecone account and index
+- Slack workspace and escalation channel
+- Airtable base for ticket logging
+
+### Required Integrations
+
+Before running the workflow, configure the following integrations in n8n:
+
+| Integration | Purpose | Used By |
+|---|---|---|
+| Gmail | Monitor incoming support emails, create reply drafts, and update message read status | Incoming Email, Create Draft Reply, Mark as Read |
+| OpenAI | Generate AI responses and create embeddings for knowledge retrieval | OpenAI Chat Model, OpenAI Embeddings |
+| Pinecone | Retrieve relevant information from the support knowledge base | Pinecone Vector Store |
+| Slack | Notify human support staff when a request requires escalation | Escalate to Human |
+| Airtable | Store and track processed support requests | Create Record |
+
+### Knowledge Base
+
+The Pinecone index should contain the support documentation used by the AI agent when answering customer requests.
+
+The knowledge base is structured as focused Q&A content to improve retrieval relevance and provide the AI agent with sufficient context to determine whether a reliable answer is available.
+
+The quality and coverage of the knowledge base directly affect the quality of generated responses and confidence classification.
+
+### Airtable Schema
+
+The `Create Record` node expects a table containing the following fields:
+
+| Field | Type | Description |
+|---|---|---|
+| Sender Email | Email | Customer email address |
+| Sender Name | Single line text | Customer name |
+| Subject | Single line text | Original email subject |
+| Email Body | Long text | Original customer message |
+| Thread ID | Single line text | Gmail conversation/thread identifier |
+| Complaint Category | Single select | Support request category |
+| Priority | Single select | `Low`, `Medium`, `High`, or `Urgent` |
+| AI Status | Single select | `Draft Ready` or `Escalate` |
+| Draft Reply | Long text | AI-generated reply draft when applicable |
+| Escalation Reason | Long text | Reason provided when human escalation is required |
+
+### Credentials & Secrets
+
+All API credentials and authentication details should be configured through n8n's credential system.
+
+**Do not store API keys, access tokens, passwords, or other secrets directly in the workflow JSON or repository.**
